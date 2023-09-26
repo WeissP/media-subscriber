@@ -5,7 +5,7 @@ use axum::{
     Router, handler::HandlerWithoutStateExt,
 };
 use axum_sessions::{async_session::SessionStore, SessionLayer};
-use std::sync::Arc;
+use std::{sync::Arc, env};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
 use crate::{
@@ -19,8 +19,11 @@ use crate::{
 // *********
 // Front end to server svelte build bundle, css and index.html from public folder
 pub fn front_public_route() -> Router {
+    let dir = env::var("FRONT_PUBLIC")
+            .ok()
+            .unwrap_or_else(|| FRONT_PUBLIC.to_string());
     Router::new()
-        .fallback_service(ServeDir::new(FRONT_PUBLIC).not_found_service(handle_error.into_service()))
+        .fallback_service(ServeDir::new(dir).not_found_service(handle_error.into_service()))
         .layer(TraceLayer::new_for_http())
 }
 
