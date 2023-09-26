@@ -1,5 +1,5 @@
 [package]
-name = "svelte-axum-project"
+name = "media-subscriber-backend"
 version = "0.4.1"
 edition = "2021"
 repository = "https://github.com/jbertovic/svelte-axum-project"
@@ -18,3 +18,7 @@ tokio = { version = "1.24", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1.0", features = ["derive"] }
+validator = { version = "0.16.1", features = ["derive"] }
+axum-valid = "0.8.0"
+humantime-serde = "1.1.1"
+ytd-rs = { version = "0.1.7", features = ["yt-dlp"] }
