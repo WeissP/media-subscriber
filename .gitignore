@@ -1,0 +1,10 @@
+# Editor directories and files
+.vscode/*
+
+# from rust
+Cargo.lock
+/target
+
+# from svelte
+/front_end/node_modules
+/front_end/dist/
