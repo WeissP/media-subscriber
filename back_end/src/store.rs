@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+pub type AppState = Arc<Store>;
+
 #[derive(Clone, Debug, Default)]
 pub struct Store {
     api_token: String,

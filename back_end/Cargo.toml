@@ -1,9 +1,9 @@
 [package]
 name = "media-subscriber-backend"
-version = "0.4.1"
+version = "0.0.1"
 edition = "2021"
-repository = "https://github.com/jbertovic/svelte-axum-project"
-keywords = ["template", "backend", "frontend", "axum", "svelte"]
+repository = "https://github.com/WeissP/media-subscriber"
+keywords = ["backend", "frontend", "axum", "svelte", "youtube"]
 license = ""
 categories = []
 description = ""
@@ -11,14 +11,29 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version="0.6.20", features = ["headers"] }
-tower-http = { version = "0.4", features = ["full"] }
-axum-sessions = "0.5"
 tokio = { version = "1.24", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-serde = { version = "1.0", features = ["derive"] }
-validator = { version = "0.16.1", features = ["derive"] }
-axum-valid = "0.8.0"
+serde = { version = "1.0", features = ["derive", "rc"] }
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
 humantime-serde = "1.1.1"
-ytd-rs = { version = "0.1.7", features = ["yt-dlp"] }
+
+invidious = { git = "https://github.com/WeissP/invidious-rs.git", default-features = false, features = ["reqwest_async"] }
+
+axum = { version="0.6.20", features = ["headers"] }
+tower-http = { version = "0.4", features = ["full"] }
+axum-sessions = "0.5"
+axum-valid = "0.8.0"
+validator = { version = "0.16.1", features = ["derive"] }
+axum-extra = "0.7.4"
+axum-macros = "0.3.0"
+serde_json = "1.0.107"
+strum = { version = "0.25.0", features = ["derive"] }
+axum-jsonschema = { version = "0.6.0", features = ["aide"] }
+schemars = { version = "0.8.10", features = ["uuid1"] }
+aide = { version = "0.11.0", features = [
+    "redoc",
+    "axum",
+    "axum-extra",
+    "macros",
+] }

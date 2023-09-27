@@ -3,23 +3,30 @@
 #![warn(clippy::nursery)]
 #![allow(missing_docs)]
 
+use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::Router;
 use axum_sessions::{async_session::MemoryStore, SessionLayer};
-use std::net::SocketAddr;
-use std::{env, sync::Arc};
+use errors::AppError;
+use std::{env, net::SocketAddr, sync::Arc};
 use tracing::log::warn;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod docs;
+mod errors;
+mod extractors;
 pub mod middlewares;
 pub mod routes;
 mod services;
 mod store;
+mod utils;
+
+pub type Result<T> = std::result::Result<T, AppError>;
 
 // SETUP Constants
 const SESSION_COOKIE_NAME: &str = "axum_svelte_session";
 const FRONT_PUBLIC: &str = "./front_end/dist";
 const SERVER_PORT: &str = "8080";
-const SERVER_HOST: &str = "0.0.0.0";
+const SERVER_HOST: &str = "127.0.0.1";
 
 /// Server that is split into a Frontend to serve static files (Svelte) and Backend
 /// Backend is further split into a non authorized area and a secure area
@@ -29,7 +36,8 @@ async fn main() {
     // start tracing - level set by either RUST_LOG env variable or defaults to debug
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "svelte_axum_project=debug".into()),
+            std::env::var("RUST_LOG")
+                .unwrap_or_else(|_| "svelte_axum_project=debug".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -49,7 +57,7 @@ async fn main() {
         .with_cookie_name(SESSION_COOKIE_NAME);
 
     // combine the front and backend into server
-    let app = Router::new()
+    let app = ApiRouter::new()
         .merge(services::front_public_route())
         .merge(services::backend(session_layer, shared_state));
 

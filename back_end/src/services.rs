@@ -1,18 +1,21 @@
+use crate::{
+    docs::docs_routes,
+    middlewares,
+    routes::{self, youtube},
+    store::{self, AppState, Store},
+    FRONT_PUBLIC,
+};
+use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
+    handler::HandlerWithoutStateExt,
     http::StatusCode,
     middleware,
     routing::{get, post},
-    Router, handler::HandlerWithoutStateExt,
+    Extension, Router,
 };
 use axum_sessions::{async_session::SessionStore, SessionLayer};
-use std::{sync::Arc, env};
+use std::{env, sync::Arc};
 use tower_http::{services::ServeDir, trace::TraceLayer};
-
-use crate::{
-    middlewares, routes,
-    store::{self, Store},
-    FRONT_PUBLIC,
-};
 
 // *********
 // FRONT END
@@ -20,10 +23,12 @@ use crate::{
 // Front end to server svelte build bundle, css and index.html from public folder
 pub fn front_public_route() -> Router {
     let dir = env::var("FRONT_PUBLIC")
-            .ok()
-            .unwrap_or_else(|| FRONT_PUBLIC.to_string());
+        .ok()
+        .unwrap_or_else(|| FRONT_PUBLIC.to_string());
     Router::new()
-        .fallback_service(ServeDir::new(dir).not_found_service(handle_error.into_service()))
+        .fallback_service(
+            ServeDir::new(dir).not_found_service(handle_error.into_service()),
+        )
         .layer(TraceLayer::new_for_http())
 }
 
@@ -41,27 +46,32 @@ async fn handle_error() -> (StatusCode, &'static str) {
 // Back end server built form various routes that are either public, require auth, or secure login
 pub fn backend<Store: SessionStore>(
     session_layer: SessionLayer<Store>,
-    shared_state: Arc<store::Store>,
+    shared_state: AppState,
 ) -> Router {
+    let mut api = OpenApi::default();
     // could add tower::ServiceBuilder here to group layers, especially if you add more layers.
     // see https://docs.rs/axum/latest/axum/middleware/index.html#ordering
-    Router::new()
+    ApiRouter::new()
         .merge(back_public_route())
         .merge(back_auth_route())
-        .merge(back_token_route(shared_state))
+        .merge(back_token_route(shared_state.clone()))
+        .nest_api_service("/docs", docs_routes(shared_state.clone()))
+        .finish_api(&mut api)
         .layer(session_layer)
+        .layer(Extension(Arc::new(api)))
 }
 
 // *********
 // BACKEND NON-AUTH
 // *********
 //
-pub fn back_public_route() -> Router {
-    Router::new()
+pub fn back_public_route() -> ApiRouter {
+    ApiRouter::new()
         .route("/auth/session", get(routes::session::data_handler)) // gets session data
         .route("/auth/login", post(routes::login)) // sets username in session
         .route("/auth/logout", get(routes::logout)) // deletes username in session
         .route("/test", get(routes::not_implemented_route))
+        .nest("/youtube", youtube::route())
 }
 
 // *********
