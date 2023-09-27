@@ -37,7 +37,6 @@
             inherit SERVER_SECRET SERVER_PORT RUST_LOG;
             buildInputs = commonInputs ++ [
               cargo-limit
-              yt-dlp
               rust-analyzer
               nodePackages.svelte-language-server
             ];
