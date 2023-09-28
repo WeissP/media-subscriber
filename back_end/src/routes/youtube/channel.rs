@@ -1,5 +1,7 @@
 use super::types::{ChannelID, Continuation, VideoInfo};
-use crate::{errors::AppError, extractors::Json, Result};
+use crate::{
+    errors::AppError, extractors::Json, routes::youtube::types::QueryParam, Result,
+};
 use aide::{
     axum::{routing::get, ApiRouter, IntoApiResponse},
     OperationIo,
@@ -28,26 +30,21 @@ pub async fn videos(
     let channel = ClientAsync::default()
         .channel_videos(
             &channel_id,
-            params
-                .continuation
-                .map(|c| format!("continuation={}", c.0))
-                .as_ref()
-                .map(String::as_str),
+            QueryParam::from(&params.continuation).as_param(),
         )
         .await?;
     let videos_info: Vec<_> =
         channel.videos.into_iter().map(VideoInfo::from).collect();
     Ok(Json(VideosResponse {
         videos_num: videos_info.len(),
-        continuation: Continuation(channel.continuation.unwrap()),
+        continuation: Continuation(channel.continuation),
         videos_info,
     }))
 }
 
 #[derive(Deserialize, Debug, Validate, JsonSchema)]
 pub struct VideosParams {
-    /// A continuation token to get the next chunk of items, If null then the first batch of videos will be responsed
-    continuation: Option<Continuation>,
+    continuation: Continuation,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
