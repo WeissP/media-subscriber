@@ -2,7 +2,6 @@
 .vscode/*
 
 # from rust
-Cargo.lock
 /target
 
 # from svelte
