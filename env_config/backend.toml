@@ -1,0 +1,19 @@
+[[env]]
+name = "RUST_LOG"
+value = "debug"
+
+[[commands]]
+package = "sqlx-cli"
+
+[devshell]
+packages = [
+   "cargo-limit",
+   "rust-analyzer",
+   "nodePackages.http-server",
+]
+
+[serviceGroups.rustdoc]
+description = "show rust doc as a web server"
+[serviceGroups.rustdoc.services.serve]
+command = "cargo doc && http-server $PRJ_ROOT/target/doc/ -p 7071"
+

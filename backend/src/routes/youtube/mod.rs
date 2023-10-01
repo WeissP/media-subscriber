@@ -2,7 +2,7 @@ use aide::axum::ApiRouter;
 
 mod channel;
 mod search;
-mod types;
+pub mod types;
 
 pub fn route() -> ApiRouter {
     ApiRouter::new()

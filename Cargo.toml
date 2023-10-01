@@ -2,5 +2,5 @@
 resolver = "2"
 members = [
     "common",
-    "back_end",
+    "backend",
 ]

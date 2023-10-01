@@ -1,0 +1,18 @@
+imports = ["services/postgres"]
+
+[services.postgres]
+package = "pkgs.postgresql_16"
+setupPostgresOnStartup = true
+
+[[env]]
+name = "DBNAME"
+value = "ma"
+
+[[env]]
+name = "DATABASE_URL"
+eval = "postgres://postgres@localhost:$PGPORT/$DBNAME"
+
+[[env]]
+name = "PGPORT"
+value = "7700"
+

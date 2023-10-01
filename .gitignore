@@ -5,8 +5,8 @@
 /target
 
 # from svelte
-/front_end/node_modules
-/front_end/dist/
+/frontend/node_modules
+/frontend/dist/
 
 # local config
 /.direnv

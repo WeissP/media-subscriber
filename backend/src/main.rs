@@ -9,7 +9,9 @@ use axum_sessions::{async_session::MemoryStore, SessionLayer};
 use errors::AppError;
 use std::{env, net::SocketAddr, sync::Arc};
 use tracing::log::warn;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{
+    layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 mod docs;
 mod errors;
@@ -23,8 +25,8 @@ mod utils;
 pub type Result<T> = std::result::Result<T, AppError>;
 
 // SETUP Constants
-const SESSION_COOKIE_NAME: &str = "axum_svelte_session";
-const FRONT_PUBLIC: &str = "./front_end/dist";
+const SESSION_COOKIE_NAME: &str = "media_subscriber_session";
+const FRONT_PUBLIC: &str = "./frontend/dist";
 const SERVER_PORT: &str = "8080";
 const SERVER_HOST: &str = "127.0.0.1";
 
@@ -33,14 +35,20 @@ const SERVER_HOST: &str = "127.0.0.1";
 /// The Back end is using 2 middleware: sessions (managing session data) and user_secure (checking for authorization)
 #[tokio::main]
 async fn main() {
-    // start tracing - level set by either RUST_LOG env variable or defaults to debug
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "svelte_axum_project=debug".into()),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    // init log
+    let sub = tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_level(true);
+    match env::var("MA_LOG_DIR").ok() {
+        Some(dir) => {
+            let file_appender =
+                tracing_appender::rolling::hourly(dir, "media_subscriber.log");
+            let (non_blocking, _guard) =
+                tracing_appender::non_blocking(file_appender);
+            sub.with_writer(non_blocking).init();
+        }
+        None => sub.init(),
+    };
 
     // configure server from environmental variables
     let (port, host, secret) = from_env();
@@ -82,17 +90,17 @@ async fn shutdown_signal() {
 // Variables from Environment or default to configure server
 // port, host, secret
 fn from_env() -> (String, String, String) {
-    if env::var("SERVER_SECRET").is_err() {
+    if env::var("MA_SERVER_SECRET").is_err() {
         warn!("env var SERVER_SECRET should be set and unique (64 bytes long)");
     }
     (
-        env::var("SERVER_PORT")
+        env::var("MA_SERVER_PORT")
             .ok()
             .unwrap_or_else(|| SERVER_PORT.to_string()),
-        env::var("SERVER_HOST")
+        env::var("MA_SERVER_HOST")
             .ok()
             .unwrap_or_else(|| SERVER_HOST.to_string()),
-        env::var("SERVER_SECRET").ok().unwrap_or_else(|| {
+        env::var("MA_SERVER_SECRET").ok().unwrap_or_else(|| {
             "this needs to be 64bytes. recommended that you set Secret instead of fixed value"
                 .to_string()
         }),

@@ -1,51 +1,46 @@
 {
-  description = "Media Subscriber";
+  description = "getting started example";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    devshell.url = "github:numtide/devshell";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
-
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+  outputs = { self, flake-utils, devshell, nixpkgs, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
-        SERVER_SECRET =
-          "2a4855f2c950a0e6167d80059e657647b70231529bec3015a56188a387f956e8cdf6277e06f5a4c335e9782971b984e3feb600f4a19acf536240f51a16560575";
-        SERVER_PORT = "7070";
-        RUST_LOG = "debug";
-        commonInputs = with pkgs;
-          [ openssl pkg-config rust-bin.nightly."2023-07-04".default nodejs_20 ]
-          ++ (if stdenv.isDarwin then
-            with darwin.apple_sdk.frameworks; [
-              IOKit
-              Security
-              CoreServices
-              SystemConfiguration
-            ]
-          else
-            [ ]);
-      in with pkgs; {
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ devshell.overlays.default (import rust-overlay) ];
+        };
+        basic = {
+          imports = map pkgs.devshell.importTOML [
+            ./env_config/db.toml
+            ./env_config/server.toml
+          ];
+          packages = with pkgs;
+            [ rust-bin.nightly."2023-07-04".default ]
+            ++ (if stdenv.isDarwin then
+              with darwin.apple_sdk.frameworks; [
+                IOKit
+                Security
+                CoreServices
+                SystemConfiguration
+              ]
+            else
+              [ ]);
+        };
+        extraImports = files:
+          basic // {
+            imports = basic.imports ++ map pkgs.devshell.importTOML files;
+          };
+      in {
         devShells = {
-          default = mkShell {
-            inherit SERVER_SECRET SERVER_PORT RUST_LOG;
-            buildInputs = commonInputs;
-          };
-          backend = mkShell {
-            inherit SERVER_SECRET SERVER_PORT RUST_LOG;
-            buildInputs = commonInputs ++ [
-              cargo-limit
-              rust-analyzer
-              nodePackages.svelte-language-server
-            ];
-          };
-          frontend = mkShell {
-            inherit SERVER_SECRET SERVER_PORT RUST_LOG;
-            buildInputs = commonInputs
-              ++ [ nodePackages.svelte-language-server ];
-          };
+          default = pkgs.devshell.mkShell basic;
+          backend =
+            pkgs.devshell.mkShell (extraImports [ ./env_config/backend.toml ]);
+          frontend =
+            pkgs.devshell.mkShell (extraImports [ ./env_config/frontend.toml ]);
         };
       });
 }

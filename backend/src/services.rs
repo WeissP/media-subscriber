@@ -22,21 +22,28 @@ use tower_http::{services::ServeDir, trace::TraceLayer};
 // *********
 // Front end to server svelte build bundle, css and index.html from public folder
 pub fn front_public_route() -> Router {
-    let dir = env::var("FRONT_PUBLIC")
-        .ok()
-        .unwrap_or_else(|| FRONT_PUBLIC.to_string());
     Router::new()
         .fallback_service(
-            ServeDir::new(dir).not_found_service(handle_error.into_service()),
+            ServeDir::new(frontend_dir())
+                .not_found_service(handle_error.into_service()),
         )
         .layer(TraceLayer::new_for_http())
 }
 
+fn frontend_dir() -> String {
+    env::var("MA_FRONT_PUBLIC")
+        .ok()
+        .unwrap_or_else(|| FRONT_PUBLIC.to_string())
+}
+
 #[allow(clippy::unused_async)]
-async fn handle_error() -> (StatusCode, &'static str) {
+async fn handle_error() -> (StatusCode, String) {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        "Something went wrong accessing static files...",
+        format!(
+            "Something went wrong accessing static files: {}",
+            frontend_dir()
+        ),
     )
 }
 

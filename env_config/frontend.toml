@@ -1,0 +1,9 @@
+[[env]]
+name = "RUST_LOG"
+value = "info"
+
+[devshell]
+packages = [
+   "nodePackages.svelte-language-server",
+]
+

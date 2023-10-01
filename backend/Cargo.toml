@@ -37,3 +37,6 @@ aide = { version = "0.11.0", features = [
     "axum-extra",
     "macros",
 ] }
+axum-login = { version = "0.6.0", features = ["postgres"] }
+sqlx = { version = "0.7.2", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid"] }
+tracing-appender = "0.2.2"

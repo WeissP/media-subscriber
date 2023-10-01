@@ -1,0 +1,24 @@
+[[env]]
+name = "MA_FRONT_PUBLIC"
+eval = "$PRJ_ROOT/frontend/dist"
+
+[[env]]
+name = "MA_SERVER_PORT"
+value = "7070"
+
+[[env]]
+name = "MA_SERVER_SECRET"
+value = "2a4855f2c950a0e6167d80059e657647b70231529bec3015a56188a387f956e8cdf6277e06f5a4c335e9782971b984e3feb600f4a19acf536240f51a16560575"
+
+# put log into terminal is fine for now
+# [[env]]
+# name = "MA_LOG_DIR"
+# eval = "$PRJ_ROOT/logs/backend"
+
+[serviceGroups.svr]
+description = "server and database"
+[serviceGroups.svr.services.server]
+command = "cargo run"
+[serviceGroups.svr.services.database]
+command = "postgres"
+
