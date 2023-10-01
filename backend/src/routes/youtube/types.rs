@@ -1,3 +1,8 @@
+use aide::OperationIo;
+use axum::{
+    async_trait,
+    extract::{FromRequestParts, Path},
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -21,14 +26,33 @@ impl QueryParam {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(try_from = "String")]
 pub struct ChannelID {
-    /// The youtube channel ID.
-    pub channel_id: String,
+    /// The youtube channel ID (must be 24 ASCII characters), e.g., UCjuNibFJ21MiSNpu8LZyV4w
+    pub channel_id: [u8; 24],
 }
 
-impl ChannelID {
-    pub fn new(channel_id: String) -> Self {
-        Self { channel_id }
+// pub struct ChannelID(pub [u8; 24]);
+
+impl AsRef<str> for ChannelID {
+    fn as_ref(&self) -> &str {
+        std::str::from_utf8(&self.channel_id)
+            .expect("channel id is not valid utf-8")
+    }
+}
+
+impl TryFrom<String> for ChannelID {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Ok(Self {
+            channel_id: value.as_bytes().try_into().map_err(|_| {
+                format!(
+                    "channel id should have exact 24 characters, received: {}",
+                    value
+                )
+            })?,
+        })
     }
 }
 
@@ -59,7 +83,9 @@ impl From<invidious::CommonChannel> for ChannelInfo {
     fn from(value: invidious::CommonChannel) -> Self {
         Self {
             name: value.name,
-            id: ChannelID::new(value.id),
+            id: value.id.try_into().unwrap_or_else(|e| {
+                panic!("invidious has an invalid channel id: {e}")
+            }),
             description_html: value.description_html,
         }
     }
@@ -95,5 +121,17 @@ impl From<invidious::CommonVideo> for VideoInfo {
             id,
             description_html,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use schemars::schema_for;
+
+    use super::*;
+    #[test]
+    fn schema_channel_id() {
+        let schema = schema_for!(ChannelID);
+        panic!("{}", serde_json::to_string_pretty(&schema).unwrap());
     }
 }

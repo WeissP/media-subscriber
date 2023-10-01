@@ -16,20 +16,21 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use strum::AsRefStr;
+use tracing::instrument;
 use validator::Validate;
 
 pub fn route() -> ApiRouter {
     ApiRouter::new().api_route("/videos", get(videos))
 }
 
+#[instrument]
 pub async fn videos(
-    Path(ChannelID { channel_id }): Path<ChannelID>,
+    Path(channel_id): Path<ChannelID>,
     Query(params): Query<VideosParams>,
 ) -> Result<Json<VideosResponse>> {
-    tracing::debug!("<videos> channel-id=[{channel_id}], {:?}", params);
     let channel = ClientAsync::default()
         .channel_videos(
-            &channel_id,
+            channel_id.as_ref(),
             QueryParam::from(&params.continuation).as_param(),
         )
         .await?;
@@ -42,7 +43,7 @@ pub async fn videos(
     }))
 }
 
-#[derive(Deserialize, Debug, Validate, JsonSchema)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct VideosParams {
     continuation: Continuation,
 }

@@ -13,16 +13,17 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use strum::AsRefStr;
+use tracing::instrument;
 use validator::Validate;
 
 pub fn route() -> ApiRouter {
     ApiRouter::new().api_route("/channel", get(search_channel))
 }
 
+#[instrument]
 pub async fn search_channel(
     Query(params): Query<SearchParams>,
 ) -> Result<Json<Vec<ChannelInfo>>> {
-    tracing::debug!("<channel> {:?}", params);
     let channels = ClientAsync::default()
         .search(Some(&format!("type=channel&q={}", params.query)))
         .await?

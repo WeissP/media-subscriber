@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use aide::OperationIo;
 use axum::{http::StatusCode, response::IntoResponse};
 use invidious::InvidiousError;
