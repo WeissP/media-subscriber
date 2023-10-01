@@ -9,10 +9,16 @@ name = "DBNAME"
 value = "ma"
 
 [[env]]
-name = "DATABASE_URL"
-eval = "postgres://postgres@localhost:$PGPORT/$DBNAME"
-
-[[env]]
 name = "PGPORT"
 value = "7700"
+
+[[env]]
+name = "DATABASE_URL"
+eval = 'postgres:///$DBNAME?port=$PGPORT\&host=$PGHOST'
+
+[[commands]]
+name = "setup-db"
+help = "setup postgresql and create databaes"
+command = 'sqlx database setup --database-url $DATABASE_URL'
+
 

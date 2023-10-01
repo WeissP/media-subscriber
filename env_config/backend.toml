@@ -2,15 +2,17 @@
 name = "RUST_LOG"
 value = "debug"
 
-[[commands]]
-package = "sqlx-cli"
-
 [devshell]
 packages = [
    "cargo-limit",
    "rust-analyzer",
    "nodePackages.http-server",
 ]
+
+[[commands]]
+name = "c"
+help = "cargo lcheck"
+command = "cargo lcheck"
 
 [serviceGroups.rustdoc]
 description = "show rust doc as a web server"
