@@ -25,36 +25,48 @@ impl QueryParam {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(try_from = "String")]
-pub struct ChannelID {
-    /// The youtube channel ID (must be 24 ASCII characters), e.g., UCjuNibFJ21MiSNpu8LZyV4w
-    pub channel_id: [u8; 24],
+macro_rules! fixed_str {
+    ($i:ident, $len:expr, $name:expr, $doc:expr) => {
+        #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+        #[serde(try_from = "String")]
+        #[doc = $doc]
+        pub struct $i(pub [u8; $len]);
+
+        impl AsRef<str> for $i {
+            fn as_ref(&self) -> &str {
+                std::str::from_utf8(&self.0)
+                    .expect(concat!($name, " is not valid utf-8"))
+            }
+        }
+
+        impl TryFrom<String> for $i {
+            type Error = String;
+
+            fn try_from(value: String) -> Result<Self, Self::Error> {
+                Ok(Self(value.as_bytes().try_into().map_err(|_| {
+                    format!(
+                        "{} should have exact 24 characters, received: {}",
+                        $name, value
+                    )
+                })?))
+            }
+        }
+    };
 }
 
-// pub struct ChannelID(pub [u8; 24]);
+fixed_str!(
+    ChannelID,
+    24,
+    "youtube channel ID",
+    "The youtube channel ID (must be 24 ASCII characters), e.g., UCjuNibFJ21MiSNpu8LZyV4w"
+);
 
-impl AsRef<str> for ChannelID {
-    fn as_ref(&self) -> &str {
-        std::str::from_utf8(&self.channel_id)
-            .expect("channel id is not valid utf-8")
-    }
-}
-
-impl TryFrom<String> for ChannelID {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(Self {
-            channel_id: value.as_bytes().try_into().map_err(|_| {
-                format!(
-                    "channel id should have exact 24 characters, received: {}",
-                    value
-                )
-            })?,
-        })
-    }
-}
+fixed_str!(
+    VideoID,
+    11,
+    "youtube video ID",
+    "The youtube video ID (must be 11 ASCII characters), e.g., lOwjw1Ja83Y"
+);
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 /// A continuation token to get the next chunk of items.
@@ -98,7 +110,7 @@ pub struct VideoInfo {
     published: u64,
     /// duration seconds
     length: u32,
-    id: String,
+    id: VideoID,
     /// description in HTML form
     description_html: String,
 }
@@ -118,7 +130,9 @@ impl From<invidious::CommonVideo> for VideoInfo {
             title,
             published,
             length,
-            id,
+            id: id.try_into().unwrap_or_else(|e| {
+                panic!("invidious has an invalid video id: {e}")
+            }),
             description_html,
         }
     }

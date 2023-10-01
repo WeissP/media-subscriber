@@ -25,7 +25,7 @@ pub fn route() -> ApiRouter {
 
 #[instrument]
 pub async fn videos(
-    Path(channel_id): Path<ChannelID>,
+    Path(VideosPathParams { channel_id }): Path<VideosPathParams>,
     Query(params): Query<VideosParams>,
 ) -> Result<Json<VideosResponse>> {
     let channel = ClientAsync::default()
@@ -41,6 +41,11 @@ pub async fn videos(
         continuation: Continuation(channel.continuation),
         videos_info,
     }))
+}
+
+#[derive(Deserialize, Debug, JsonSchema)]
+pub struct VideosPathParams {
+    channel_id: ChannelID,
 }
 
 #[derive(Deserialize, Debug, JsonSchema)]
