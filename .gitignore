@@ -11,3 +11,4 @@
 # local config
 /.direnv
 /.envrc
+/.data
