@@ -1,9 +1,7 @@
 use crate::{
     docs::docs_routes,
-    middlewares,
     routes::{self, youtube},
-    store::{self, AppState, Store},
-    FRONT_PUBLIC,
+    store::{self, AppState},
 };
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
@@ -21,38 +19,26 @@ use tower_http::{services::ServeDir, trace::TraceLayer};
 // FRONT END
 // *********
 // Front end to server svelte build bundle, css and index.html from public folder
-pub fn front_public_route() -> Router {
+pub fn front_public_route(dir: &str) -> Router {
+    async fn handle_error() -> (StatusCode, String) {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong accessing static files",),
+        )
+    }
     Router::new()
         .fallback_service(
-            ServeDir::new(frontend_dir())
-                .not_found_service(handle_error.into_service()),
+            ServeDir::new(dir).not_found_service(handle_error.into_service()),
         )
         .layer(TraceLayer::new_for_http())
-}
-
-fn frontend_dir() -> String {
-    env::var("MA_FRONT_PUBLIC")
-        .ok()
-        .unwrap_or_else(|| FRONT_PUBLIC.to_string())
-}
-
-#[allow(clippy::unused_async)]
-async fn handle_error() -> (StatusCode, String) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!(
-            "Something went wrong accessing static files: {}",
-            frontend_dir()
-        ),
-    )
 }
 
 // ********
 // BACK END
 // ********
 // Back end server built form various routes that are either public, require auth, or secure login
-pub fn backend<Store: SessionStore>(
-    session_layer: SessionLayer<Store>,
+pub fn backend(
+    // session_layer: SessionLayer<Store>,
     shared_state: AppState,
 ) -> Router {
     let mut api = OpenApi::default();
@@ -60,11 +46,11 @@ pub fn backend<Store: SessionStore>(
     // see https://docs.rs/axum/latest/axum/middleware/index.html#ordering
     ApiRouter::new()
         .merge(back_public_route())
-        .merge(back_auth_route())
-        .merge(back_token_route(shared_state.clone()))
+        // .merge(back_auth_route())
+        // .merge(back_token_route(shared_state.clone()))
         .nest_api_service("/docs", docs_routes(shared_state.clone()))
         .finish_api(&mut api)
-        .layer(session_layer)
+        // .layer(session_layer)
         .layer(Extension(Arc::new(api)))
 }
 
@@ -85,23 +71,23 @@ pub fn back_public_route() -> ApiRouter {
 // BACKEND SESSION
 // *********
 //
-pub fn back_auth_route() -> Router {
-    Router::new()
-        .route("/secure", get(routes::session::handler))
-        .route_layer(middleware::from_fn(middlewares::user_secure))
-}
+// pub fn back_auth_route() -> Router {
+//     Router::new()
+//         .route("/secure", get(routes::session::handler))
+//         .route_layer(middleware::from_fn(middlewares::user_secure))
+// }
 
 // *********
 // BACKEND API
 // *********
 //
 // invoked with State that stores API that is checked by the `middleware::auth`
-pub fn back_token_route<S>(state: Arc<Store>) -> Router<S> {
-    Router::new()
-        .route("/api", get(routes::api::handler))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            middlewares::auth,
-        ))
-        .with_state(state)
-}
+// pub fn back_token_route<S>(state: AppState) -> Router<S> {
+//     Router::new()
+//         .route("/api", get(routes::api::handler))
+//         .route_layer(middleware::from_fn_with_state(
+//             state.clone(),
+//             middlewares::auth,
+//         ))
+//         .with_state(state)
+// }

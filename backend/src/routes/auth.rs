@@ -1,8 +1,45 @@
-use axum::{response::IntoResponse, Json};
+use aide::axum::ApiRouter;
+use axum::{extract::State, response::IntoResponse, Json};
+use axum_login::{secrecy::SecretVec, AuthUser, PostgresStore};
 use axum_sessions::{
     async_session::serde_json::json, extractors::WritableSession,
 };
+use schemars::JsonSchema;
 use serde::Deserialize;
+
+use crate::{
+    db::{self, User},
+    store::AppState,
+    utils::fixed_str,
+};
+
+pub fn route(state: AppState) -> ApiRouter {
+    ApiRouter::new().with_state(state)
+    // .api_route("/login")
+}
+
+impl AuthUser<i32> for User {
+    fn get_id(&self) -> i32 {
+        self.id
+    }
+
+    fn get_password_hash(&self) -> SecretVec<u8> {
+        SecretVec::new(self.hashed_password.clone().into())
+    }
+}
+
+type AuthContext =
+    axum_login::extractors::AuthContext<i64, User, PostgresStore<User>>;
+
+async fn login_handler(
+    mut auth: AuthContext,
+    State(state): State<AppState>,
+    Json(login): Json<Login>,
+) {
+    // let user = db::get_user(state.db());
+    // auth.login(&user).await.unwrap();
+    todo!()
+}
 
 /// route to handle log in
 #[allow(clippy::unused_async)]
@@ -36,7 +73,7 @@ const fn check_password(_username: &str, _password: &str) -> bool {
     true
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct Login {
     username: String,
     password: String,

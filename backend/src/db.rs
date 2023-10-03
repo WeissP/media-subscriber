@@ -1,33 +1,25 @@
-use super::youtube::types::ChannelID;
-use axum_login::{secrecy::SecretVec, AuthUser, PostgresStore};
-use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
+use anyhow::Context;
+use getset_scoped::Getters;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
 
+pub async fn init_pool(url: &str) -> anyhow::Result<PgPool> {
+    let db = PgPoolOptions::new()
+        .max_connections(50)
+        .connect(url)
+        .await
+        .with_context(|| format!("could not connect to database_url: {url}",))?;
+    MIGRATOR.run(&db).await?;
+    Ok(db)
+}
+
 #[derive(Debug, Default, Clone, sqlx::FromRow)]
 pub struct User {
-    id: i32,
-    username: String,
-    hashed_password: String,
-    subscribed_channels: Vec<String>,
-}
-
-impl AuthUser<i32> for User {
-    fn get_id(&self) -> i32 {
-        self.id
-    }
-
-    fn get_password_hash(&self) -> SecretVec<u8> {
-        SecretVec::new(self.hashed_password.clone().into())
-    }
-}
-
-type AuthContext =
-    axum_login::extractors::AuthContext<i64, User, PostgresStore<User>>;
-
-pub async fn login(mut auth: AuthContext) -> () {
-    todo!()
+    pub id: i32,
+    pub username: String,
+    pub hashed_password: String,
+    pub subscribed_channels: Vec<String>,
 }
 
 pub async fn get_user(

@@ -1,20 +1,18 @@
-use std::sync::Arc;
+use crate::{config::Config, db::init_pool};
+use anyhow::Context;
+use getset_scoped::Getters;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
-pub type AppState = Arc<Store>;
-
-#[derive(Clone, Debug, Default)]
-pub struct Store {
-    api_token: String,
+#[derive(Clone, Getters)]
+#[get = "pub"]
+pub struct AppState {
+    db: PgPool,
 }
 
-impl Store {
-    pub fn new(api_token: &str) -> Self {
-        Self {
-            api_token: api_token.to_string(),
-        }
-    }
-
-    pub fn api_token_check(&self, auth_header: &str) -> bool {
-        auth_header == format!("Bearer {}", self.api_token)
+impl AppState {
+    pub async fn new(config: &Config) -> anyhow::Result<Self> {
+        Ok(Self {
+            db: init_pool(config.database_url()).await?,
+        })
     }
 }

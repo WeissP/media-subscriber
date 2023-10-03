@@ -2,6 +2,10 @@
 name = "RUST_LOG"
 value = "info"
 
+[[env]]
+name = "RUSTFLAGS"
+value = "-Awarnings"
+
 [devshell]
 packages = [
    "nodePackages.svelte-language-server",

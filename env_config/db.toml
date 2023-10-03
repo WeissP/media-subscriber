@@ -13,6 +13,10 @@ name = "PGPORT"
 value = "7700"
 
 [[env]]
+name = "SQLX_OFFLINE"
+value = "true"
+
+[[env]]
 name = "DATABASE_URL"
 eval = 'postgres:///$DBNAME?port=$PGPORT\&host=$PGHOST'
 

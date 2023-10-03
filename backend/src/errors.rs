@@ -8,9 +8,11 @@ use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
+pub type Response<T> = Result<T, RespError>;
+
 /// A default error response for most API errors.
 #[derive(Debug, Serialize, JsonSchema, OperationIo)]
-pub struct AppError {
+pub struct RespError {
     /// An error message.
     pub error: String,
     /// A unique error ID.
@@ -22,7 +24,7 @@ pub struct AppError {
     pub error_details: Option<Value>,
 }
 
-impl AppError {
+impl RespError {
     pub fn new(error: &str) -> Self {
         Self {
             error: error.to_string(),
@@ -43,7 +45,7 @@ impl AppError {
     }
 }
 
-impl From<InvidiousError> for AppError {
+impl From<InvidiousError> for RespError {
     fn from(value: InvidiousError) -> Self {
         Self::new("Invidious api error")
             .with_status(StatusCode::INTERNAL_SERVER_ERROR)
@@ -51,7 +53,7 @@ impl From<InvidiousError> for AppError {
     }
 }
 
-impl IntoResponse for AppError {
+impl IntoResponse for RespError {
     fn into_response(self) -> axum::response::Response {
         let status = self.status;
         let mut res = axum::Json(self).into_response();

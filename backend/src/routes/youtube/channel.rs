@@ -1,6 +1,8 @@
 use super::types::{ChannelID, Continuation, VideoInfo};
 use crate::{
-    errors::AppError, extractors::Json, routes::youtube::types::QueryParam, Result,
+    errors::{RespError, Response},
+    extractors::Json,
+    routes::youtube::types::QueryParam,
 };
 use aide::{
     axum::{routing::get, ApiRouter, IntoApiResponse},
@@ -27,7 +29,7 @@ pub fn route() -> ApiRouter {
 pub async fn videos(
     Path(VideosPathParams { channel_id }): Path<VideosPathParams>,
     Query(params): Query<VideosParams>,
-) -> Result<Json<VideosResponse>> {
+) -> Response<Json<VideosResponse>> {
     let channel = ClientAsync::default()
         .channel_videos(
             channel_id.as_ref(),

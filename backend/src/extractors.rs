@@ -1,4 +1,4 @@
-use crate::errors::AppError;
+use crate::errors::RespError;
 use aide::operation::OperationIo;
 use axum::response::IntoResponse;
 use axum_jsonschema::JsonSchemaRejection;
@@ -10,7 +10,7 @@ use serde_json::json;
 struct MyExtractor;
 
 #[derive(FromRequest, OperationIo)]
-#[from_request(via(axum_jsonschema::Json), rejection(AppError))]
+#[from_request(via(axum_jsonschema::Json), rejection(RespError))]
 #[aide(
     input_with = "axum_jsonschema::Json<T>",
     output_with = "axum_jsonschema::Json<T>",
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl From<JsonSchemaRejection> for AppError {
+impl From<JsonSchemaRejection> for RespError {
     fn from(rejection: JsonSchemaRejection) -> Self {
         match rejection {
             JsonSchemaRejection::Json(j) => Self::new(&j.to_string()),

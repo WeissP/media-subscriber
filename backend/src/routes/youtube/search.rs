@@ -1,5 +1,8 @@
 use super::types::{ChannelID, ChannelInfo, Continuation, VideoInfo};
-use crate::{errors::AppError, extractors::Json, Result};
+use crate::{
+    errors::{RespError, Response},
+    extractors::Json,
+};
 use aide::{
     axum::{routing::get, ApiRouter, IntoApiResponse},
     OperationIo,
@@ -23,7 +26,7 @@ pub fn route() -> ApiRouter {
 #[instrument]
 pub async fn search_channel(
     Query(params): Query<SearchParams>,
-) -> Result<Json<Vec<ChannelInfo>>> {
+) -> Response<Json<Vec<ChannelInfo>>> {
     let channels = ClientAsync::default()
         .search(Some(&format!("type=channel&q={}", params.query)))
         .await?

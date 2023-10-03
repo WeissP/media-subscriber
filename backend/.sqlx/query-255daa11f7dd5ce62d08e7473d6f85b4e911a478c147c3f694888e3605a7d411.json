@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT * FROM users WHERE username = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "hashed_password",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "subscribed_channels",
+        "type_info": "BpcharArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "255daa11f7dd5ce62d08e7473d6f85b4e911a478c147c3f694888e3605a7d411"
+}
