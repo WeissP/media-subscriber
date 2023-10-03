@@ -20,5 +20,7 @@ jobs:
       - run: |
           nix develop .#ci
           cargo build
-          echo $DATABASE_URL
+          echo "starting postgres"
+          postgres&
+          echo "DATABASE_URL:$DATABASE_URL"
           cargo test
