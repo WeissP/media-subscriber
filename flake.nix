@@ -29,11 +29,11 @@
               ]
             else
               [ ]);
+          env = [{
+            name = "PKG_CONFIG_PATH";
+            value = "${pkgs.openssl.dev}/lib/pkgconfig";
+          }];
         };
-        env = [{
-          name = "PKG_CONFIG_PATH";
-          value = "${pkgs.openssl.dev}/lib/pkgconfig";
-        }];
         extraImports = files:
           basic // {
             imports = basic.imports ++ map pkgs.devshell.importTOML files;
