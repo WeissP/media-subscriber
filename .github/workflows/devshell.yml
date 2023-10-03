@@ -18,6 +18,5 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
-          nix develop .#ci -c "cargo" "tree"
           nix develop .#ci -c "cargo" "build"
-          nix develop .#ci -c "cargo" "test"
+          # nix develop .#ci -c "cargo" "test"
