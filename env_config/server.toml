@@ -18,12 +18,6 @@ name = "npm"
 package = "sqlx-cli"
 name = "sqlx"
 
-[devshell]
-packages = [
-   "openssl.dev",
-   "pkg-config",
-]
-
 # put log into terminal is fine for now
 # [[env]]
 # name = "MS_LOG_DIR"

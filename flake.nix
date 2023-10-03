@@ -19,7 +19,7 @@
             ./env_config/server.toml
           ];
           packages = with pkgs;
-            [ rust-bin.nightly."2023-07-04".default ]
+            [ rust-bin.nightly."2023-07-04".default openssl.dev pkg-config ]
             ++ (if stdenv.isDarwin then
               with darwin.apple_sdk.frameworks; [
                 IOKit
@@ -30,6 +30,10 @@
             else
               [ ]);
         };
+        env = [{
+          name = "PKG_CONFIG_PATH";
+          value = "${pkgs.openssl.dev}/lib/pkgconfig";
+        }];
         extraImports = files:
           basic // {
             imports = basic.imports ++ map pkgs.devshell.importTOML files;
