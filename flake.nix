@@ -23,6 +23,7 @@
               rust-bin.nightly."2023-07-04".default
               openssl
               openssl.dev
+              libiconv
               pkg-config
             ] ++ (if stdenv.isDarwin then
               with darwin.apple_sdk.frameworks; [
@@ -36,11 +37,15 @@
           env = [
             {
               name = "PKG_CONFIG_PATH";
-              value = "${pkgs.openssl.dev}/lib/pkgconfig";
+              prefix = "${pkgs.openssl.dev}/lib/pkgconfig";
             }
+            # {
+            #   name = "OPENSSL_DIR";
+            #   value = "${pkgs.openssl.dev}/lib/pkgconfig";
+            # }
             {
-              name = "OPENSSL_DIR";
-              value = pkgs.openssl.dev;
+              name = "OPENSSL_NO_VENDOR";
+              value = "1";
             }
           ];
         };
