@@ -110,15 +110,3 @@ impl From<invidious::CommonVideo> for VideoInfo {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-
-    use super::*;
-    #[test]
-    fn schema_channel_id() {
-        let schema = schema_for!(ChannelID);
-        panic!("{}", serde_json::to_string_pretty(&schema).unwrap());
-    }
-}

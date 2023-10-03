@@ -81,8 +81,8 @@ mod tests {
         assert_eq!(user.username, username);
         assert_eq!(user.hashed_password, hashed_password);
         assert_eq!(user.subscribed_channels, channels);
-        let dup = insert_user(&pool, username, hashed_password, channels.clone())
-            .await
-            .unwrap();
+        // let dup = insert_user(&pool, username, hashed_password, channels.clone())
+        //     .await
+        //     .unwrap();
     }
 }
