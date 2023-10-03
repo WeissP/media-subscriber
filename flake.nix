@@ -41,6 +41,7 @@
             pkgs.devshell.mkShell (extraImports [ ./env_config/backend.toml ]);
           frontend =
             pkgs.devshell.mkShell (extraImports [ ./env_config/frontend.toml ]);
+          ci = pkgs.devshell.mkShell (extraImports [ ./env_config/ci.toml ]);
         };
       });
 }
