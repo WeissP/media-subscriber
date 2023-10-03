@@ -19,8 +19,12 @@
             ./env_config/server.toml
           ];
           packages = with pkgs;
-            [ rust-bin.nightly."2023-07-04".default openssl.dev pkg-config ]
-            ++ (if stdenv.isDarwin then
+            [
+              rust-bin.nightly."2023-07-04".default
+              openssl
+              openssl.dev
+              pkg-config
+            ] ++ (if stdenv.isDarwin then
               with darwin.apple_sdk.frameworks; [
                 IOKit
                 Security
