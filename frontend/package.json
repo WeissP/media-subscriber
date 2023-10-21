@@ -7,11 +7,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "watch": "watch 'npm run build' $PRJ_ROOT/frontend/src"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.4.2",
     "svelte": "^4.0.5",
     "vite": "^4.4.5"
+  },
+  "dependencies": {
+    "watch": "^1.0.2",
+    "yesvelte": "^0.0.2-next.213"
   }
 }

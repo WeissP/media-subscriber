@@ -13,3 +13,19 @@ export async function getApi(api_token) {
     });
     return await res.json();
 } 
+
+export async function videosByTag(tagName, onSuccess){
+    fetch("http://127.0.0.1:7070/youtube/tag/" + tagName, {
+      method: 'GET',
+    })
+    .then(res => {
+          console.log("res:" + res)
+          return res.json()
+    })
+    .then(data => {
+      onSuccess(data)
+      // console.log("data:" + console.log(JSON.stringify(data)))
+      //return data;//can json be a any type? not sure      
+    })
+    .catch(error => console.log('request error'+ error))
+  }
