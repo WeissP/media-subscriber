@@ -48,6 +48,7 @@ CREATE TABLE tag_ytb_channel (
 CREATE TABLE ytb_video (
     ytb_video_id serial PRIMARY KEY,
     video text UNIQUE NOT NULL,
+    video_title text,
     video_length integer,
     introduction text,
     description text,

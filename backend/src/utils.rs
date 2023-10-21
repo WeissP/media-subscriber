@@ -3,6 +3,7 @@ macro_rules! fixed_str {
         #[derive(
             Debug,
             Clone,
+            Copy,
             Hash,
             PartialEq,
             Eq,

@@ -68,6 +68,9 @@ impl IntoResponse for RespError {
             // Self::Sqlx(ref e) => {
             //     tracing::error!("SQLx error: {:?}", e);
             // }
+            Self::Invidious(ref e) => {
+                tracing::error!("Invidious error: {:?}", e);
+            }
             Self::Anyhow(ref e) => {
                 tracing::error!("Generic error: {:?}", e);
             }

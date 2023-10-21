@@ -109,6 +109,53 @@ where C : GenericClient
         res.map(| row | (self.mapper) ((self.extractor) (& row)))) .into_stream() ;
         Ok(it)
     }
+}#[derive( Debug, Clone, PartialEq, )] pub struct VideoInfo
+{ pub video : String,pub video_title : Option<String>,pub video_length : Option<i32>,pub introduction : Option<String>,pub description : Option<String>,pub published : Option<time::OffsetDateTime>,pub cached_at : Option<time::OffsetDateTime>,pub updated_at : Option<time::OffsetDateTime>,}pub struct VideoInfoBorrowed < 'a >
+{ pub video : &'a str,pub video_title : Option<&'a str>,pub video_length : Option<i32>,pub introduction : Option<&'a str>,pub description : Option<&'a str>,pub published : Option<time::OffsetDateTime>,pub cached_at : Option<time::OffsetDateTime>,pub updated_at : Option<time::OffsetDateTime>,} impl < 'a > From < VideoInfoBorrowed <
+'a >> for VideoInfo
+{
+    fn
+    from(VideoInfoBorrowed { video,video_title,video_length,introduction,description,published,cached_at,updated_at,} : VideoInfoBorrowed < 'a >)
+    -> Self { Self { video: video.into(),video_title: video_title.map(|v| v.into()),video_length,introduction: introduction.map(|v| v.into()),description: description.map(|v| v.into()),published,cached_at,updated_at,} }
+}pub struct VideoInfoQuery < 'a, C : GenericClient, T, const N : usize >
+{
+    client : & 'a  C, params :
+    [& 'a (dyn postgres_types :: ToSql + Sync) ; N], stmt : & 'a mut cornucopia_async
+    :: private :: Stmt, extractor : fn(& tokio_postgres :: Row) -> VideoInfoBorrowed,
+    mapper : fn(VideoInfoBorrowed) -> T,
+} impl < 'a, C, T : 'a, const N : usize > VideoInfoQuery < 'a, C, T, N >
+where C : GenericClient
+{
+    pub fn map < R > (self, mapper : fn(VideoInfoBorrowed) -> R) -> VideoInfoQuery
+    < 'a, C, R, N >
+    {
+        VideoInfoQuery
+        {
+            client : self.client, params : self.params, stmt : self.stmt,
+            extractor : self.extractor, mapper,
+        }
+    } pub async fn one(self) -> Result < T, tokio_postgres :: Error >
+    {
+        let stmt = self.stmt.prepare(self.client) .await ? ; let row =
+        self.client.query_one(stmt, & self.params) .await ? ;
+        Ok((self.mapper) ((self.extractor) (& row)))
+    } pub async fn all(self) -> Result < Vec < T >, tokio_postgres :: Error >
+    { self.iter() .await ?.try_collect().await } pub async fn opt(self) -> Result
+    < Option < T >, tokio_postgres :: Error >
+    {
+        let stmt = self.stmt.prepare(self.client) .await ? ;
+        Ok(self.client.query_opt(stmt, & self.params) .await
+        ?.map(| row | (self.mapper) ((self.extractor) (& row))))
+    } pub async fn iter(self,) -> Result < impl futures::Stream < Item = Result
+    < T, tokio_postgres :: Error >> + 'a, tokio_postgres :: Error >
+    {
+        let stmt = self.stmt.prepare(self.client) .await ? ; let it =
+        self.client.query_raw(stmt, cornucopia_async :: private ::
+        slice_iter(& self.params)) .await ?
+        .map(move | res |
+        res.map(| row | (self.mapper) ((self.extractor) (& row)))) .into_stream() ;
+        Ok(it)
+    }
 }#[derive( Debug, Clone, PartialEq, )] pub struct ChannelInfo
 { pub channel : String,pub channel_name : Option<String>,pub introduction : Option<String>,pub description : Option<String>,}pub struct ChannelInfoBorrowed < 'a >
 { pub channel : &'a str,pub channel_name : Option<&'a str>,pub introduction : Option<&'a str>,pub description : Option<&'a str>,} impl < 'a > From < ChannelInfoBorrowed <
@@ -156,22 +203,47 @@ where C : GenericClient
         res.map(| row | (self.mapper) ((self.extractor) (& row)))) .into_stream() ;
         Ok(it)
     }
-}pub fn channels_by_tags() -> ChannelsByTagsStmt
-{ ChannelsByTagsStmt(cornucopia_async :: private :: Stmt :: new("SELECT DISTINCT ytb_channel.channel
+}pub fn channels_by_tag() -> ChannelsByTagStmt
+{ ChannelsByTagStmt(cornucopia_async :: private :: Stmt :: new("SELECT DISTINCT ytb_channel.channel
   FROM tag_ytb_channel
        INNER JOIN tag USING (tag_id)
        INNER JOIN ytb_channel USING (ytb_channel_id)
- WHERE tag.tag_name = ANY($1)")) } pub
-struct ChannelsByTagsStmt(cornucopia_async :: private :: Stmt) ; impl
-ChannelsByTagsStmt { pub fn bind < 'a, C : GenericClient, T1 : cornucopia_async::StringSql,T2 : cornucopia_async::ArraySql<Item = T1>,>
+ WHERE tag.tag_name = $1")) } pub
+struct ChannelsByTagStmt(cornucopia_async :: private :: Stmt) ; impl
+ChannelsByTagStmt { pub fn bind < 'a, C : GenericClient, T1 : cornucopia_async::StringSql,>
 (& 'a mut self, client : & 'a  C,
-tags : & 'a T2,) -> StringQuery < 'a, C,
+tag : & 'a T1,) -> StringQuery < 'a, C,
 String, 1 >
 {
     StringQuery
     {
-        client, params : [tags,], stmt : & mut self.0, extractor :
+        client, params : [tag,], stmt : & mut self.0, extractor :
         | row | { row.get(0) }, mapper : | it | { it.into() },
+    }
+} }pub fn videos_by_tag() -> VideosByTagStmt
+{ VideosByTagStmt(cornucopia_async :: private :: Stmt :: new("SELECT DISTINCT
+  ytb_video.video,
+  ytb_video.video_title,
+  ytb_video.video_length,
+  ytb_video.introduction,
+  ytb_video.description,
+  ytb_video.published,
+  ytb_video.cached_at,
+  ytb_video.updated_at
+  FROM tag_ytb_video
+       INNER JOIN tag USING (tag_id)
+       INNER JOIN ytb_video USING (ytb_video_id)
+ WHERE tag.tag_name = $1")) } pub
+struct VideosByTagStmt(cornucopia_async :: private :: Stmt) ; impl
+VideosByTagStmt { pub fn bind < 'a, C : GenericClient, T1 : cornucopia_async::StringSql,>
+(& 'a mut self, client : & 'a  C,
+tag : & 'a T1,) -> VideoInfoQuery < 'a, C,
+VideoInfo, 1 >
+{
+    VideoInfoQuery
+    {
+        client, params : [tag,], stmt : & mut self.0, extractor :
+        | row | { VideoInfoBorrowed { video : row.get(0),video_title : row.get(1),video_length : row.get(2),introduction : row.get(3),description : row.get(4),published : row.get(5),cached_at : row.get(6),updated_at : row.get(7),} }, mapper : | it | { <VideoInfo>::from(it) },
     }
 } }pub fn channel_info() -> ChannelInfoStmt
 { ChannelInfoStmt(cornucopia_async :: private :: Stmt :: new("SELECT

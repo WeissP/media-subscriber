@@ -47,7 +47,7 @@ tower-sessions = { version = "0.2.2" }
 tower = "0.4.13"
 time = "0.3.29"
 refinery = { version = "0.8.11", features = ["tokio-postgres"] }
-tokio-postgres = "0.7.10"
+tokio-postgres = { version = "0.7.10", features = [ "with-time-0_3",] }
 futures = "0.3.28"
 postgres-types = "0.2.6"
 cornucopia_async = "0.4.0"

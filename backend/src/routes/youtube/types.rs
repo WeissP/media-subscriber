@@ -1,12 +1,13 @@
 use crate::{cornucopia::queries::ytb, utils::fixed_str};
 use aide::OperationIo;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use axum::{
     async_trait,
     extract::{FromRequestParts, Path},
 };
 use cornucopia_async::GenericClient;
-use invidious::CommonThumbnail;
+use futures::{stream::FuturesUnordered, StreamExt};
+use invidious::{ClientAsync, ClientAsyncTrait, CommonThumbnail, InvidiousError};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -48,7 +49,7 @@ fixed_str!(
     "The youtube video ID (must be 11 ASCII characters), e.g., lOwjw1Ja83Y"
 );
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, Default)]
 /// A continuation token to get the next chunk of items.
 /// If it is not given in paramter or it is empty, then the first chunk of items will be responsed.
 /// If it is null in response, then it means all items are returned.
@@ -201,6 +202,112 @@ pub struct VideoInfo {
     description_html: String,
 }
 
+impl VideoInfo {
+    pub async fn fetch(
+        c: &ClientAsync,
+        id: VideoID,
+    ) -> Result<Self, InvidiousError> {
+        let r = c.video(id.as_ref(), None).await?;
+        Ok(r.into())
+    }
+
+    pub async fn of_channel(
+        c: &ClientAsync,
+        id: &ChannelID,
+        cont: Continuation,
+    ) -> Result<Vec<Self>, InvidiousError> {
+        let r = c
+            .channel_videos(id.as_ref(), QueryParam::from(&cont).as_param())
+            .await?;
+        let videos_info: Vec<_> =
+            r.videos.into_iter().map(VideoInfo::from).collect();
+        Ok(videos_info)
+    }
+
+    // pub async fn of_db(
+    //     c: &ClientAsync,
+    //     conn: &impl GenericClient,
+    // ) -> Result<Self, anyhow::Error> {
+    //     let r = c
+    //         .channel_videos(id.as_ref(), QueryParam::from(&cont).as_param())
+    //         .await?;
+    //     let videos_info: Vec<_> =
+    //         r.videos.into_iter().map(VideoInfo::from).collect();
+    //     Ok(videos_info)
+    // }
+
+    pub async fn of_recommandation(
+        tag: String,
+        conn: &impl GenericClient,
+    ) -> Result<Vec<Self>, anyhow::Error> {
+        let client = ClientAsync::default();
+        let ids: Vec<anyhow::Result<VideoID>> = ytb::videos_by_tag()
+            .bind(conn, &tag)
+            .map(|x| {
+                x.video
+                    .to_string()
+                    .try_into()
+                    .map_err(|e| anyhow!("invalid video id"))
+            })
+            .all()
+            .await?;
+        let mut tasks: FuturesUnordered<_> = ids
+            .into_iter()
+            .flat_map(|id| match id {
+                Ok(id) => Some(id),
+                Err(e) => {
+                    tracing::error!("{}", e);
+                    None
+                }
+            })
+            .map(|id| Self::fetch(&client, id))
+            .collect();
+        let mut videos = Vec::new();
+        while let Some(res) = tasks.next().await {
+            match res {
+                Ok(video) => videos.push(video),
+                Err(e) => {
+                    tracing::error!("could not fetch video: {}", e);
+                }
+            }
+        }
+        Ok(videos)
+    }
+}
+
+// impl<'a> TryFrom<ytb::VideosByTagBorrowed<'a>> for VideoInfo {
+//     type Error = anyhow::Error;
+
+//     fn try_from(
+//         ytb::VideosByTagBorrowed {
+//             video,
+//             video_title,
+//             video_length,
+//             introduction,
+//             description,
+//             published,
+//             cached_at,
+//             updated_at,
+//             ..
+//         }: ytb::VideosByTagBorrowed<'a>,
+//     ) -> Result<Self, Self::Error> {
+//         Ok(Self {
+//             title: video_title.to_string(),
+//             published: published
+//                 .unix_timestamp()
+//                 .try_into()
+//                 .context("invalid time")?,
+//             length: video_length.try_into().context("invliad video length")?,
+//             id: video
+//                 .to_string()
+//                 .try_into()
+//                 .map_err(|e| anyhow!("invalid video id: {e}"))?,
+//             thumbnails: todo!(),
+//             description_html: todo!(),
+//         })
+//     }
+// }
+
 impl From<invidious::CommonVideo> for VideoInfo {
     fn from(
         invidious::CommonVideo {
@@ -226,9 +333,67 @@ impl From<invidious::CommonVideo> for VideoInfo {
     }
 }
 
+impl From<invidious::video::Video> for VideoInfo {
+    fn from(
+        invidious::video::Video {
+            title,
+            id,
+            thumbnails,
+            description_html,
+            published,
+            length,
+            ..
+        }: invidious::video::Video,
+    ) -> Self {
+        Self {
+            title,
+            published,
+            length,
+            id: id.try_into().unwrap_or_else(|e| {
+                panic!("invidious has an invalid video id: {e}")
+            }),
+            thumbnails: thumbnails.into_iter().map(Thumbnail::from).collect(),
+            description_html,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 /// Video information with its source
 pub struct VideoWithSource {
     video_info: VideoInfo,
     source: VideoSource,
+}
+
+impl VideoWithSource {
+    pub async fn of_channel(
+        c: &ClientAsync,
+        channel_id: ChannelID,
+        cont: Continuation,
+    ) -> Result<Vec<Self>, InvidiousError> {
+        let vis = VideoInfo::of_channel(c, &channel_id, cont).await?;
+        let r = vis
+            .into_iter()
+            .map(|video_info| Self {
+                video_info,
+                source: VideoSource::Channel { channel_id },
+            })
+            .collect();
+        Ok(r)
+    }
+
+    pub async fn of_recommandation(
+        tag: String,
+        conn: &impl GenericClient,
+    ) -> anyhow::Result<Vec<Self>> {
+        let vis = VideoInfo::of_recommandation(tag, conn).await?;
+        let r = vis
+            .into_iter()
+            .map(|video_info| Self {
+                video_info,
+                source: VideoSource::Recommandation,
+            })
+            .collect();
+        Ok(r)
+    }
 }

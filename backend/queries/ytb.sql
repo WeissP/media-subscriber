@@ -1,11 +1,28 @@
 --: ChannelInfo(channel_name?, introduction?, description?)
+--: VideoInfo(video_title?,video_length?,introduction?,description?,published?,cached_at?,updated_at?)
 
---! channels_by_tags
+--! channels_by_tag
 SELECT DISTINCT ytb_channel.channel
   FROM tag_ytb_channel
        INNER JOIN tag USING (tag_id)
        INNER JOIN ytb_channel USING (ytb_channel_id)
- WHERE tag.tag_name = ANY(:tags); 
+ WHERE tag.tag_name = :tag; 
+
+--! videos_by_tag : VideoInfo
+SELECT DISTINCT
+  ytb_video.video,
+  ytb_video.video_title,
+  ytb_video.video_length,
+  ytb_video.introduction,
+  ytb_video.description,
+  ytb_video.published,
+  ytb_video.cached_at,
+  ytb_video.updated_at
+  FROM tag_ytb_video
+       INNER JOIN tag USING (tag_id)
+       INNER JOIN ytb_video USING (ytb_video_id)
+ WHERE tag.tag_name = :tag; 
+
 
 --! channel_info : ChannelInfo
 SELECT
