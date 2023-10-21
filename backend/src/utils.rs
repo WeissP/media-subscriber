@@ -3,6 +3,9 @@ macro_rules! fixed_str {
         #[derive(
             Debug,
             Clone,
+            Hash,
+            PartialEq,
+            Eq,
             serde::Serialize,
             serde::Deserialize,
             schemars::JsonSchema,

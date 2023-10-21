@@ -1,15 +1,20 @@
-use super::types::{ChannelID, Continuation, VideoInfo};
+use super::types::{
+    ChannelID, ChannelIDPath, ChannelInfo, Continuation, VideoInfo,
+};
 use crate::{
+    cornucopia::queries::ytb,
     errors::{RespError, Response},
     extractors::Json,
     routes::youtube::types::QueryParam,
+    store::AppState,
 };
 use aide::{
     axum::{routing::get, ApiRouter, IntoApiResponse},
     OperationIo,
 };
+use anyhow::Context;
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     response::IntoResponse,
 };
 use axum_valid::Valid;
@@ -21,13 +26,25 @@ use strum::AsRefStr;
 use tracing::instrument;
 use validator::Validate;
 
-pub fn route() -> ApiRouter {
-    ApiRouter::new().api_route("/videos", get(videos))
+pub fn route() -> ApiRouter<AppState> {
+    ApiRouter::new()
+        .api_route("/", get(info))
+        .api_route("/videos", get(videos))
+}
+
+#[instrument]
+pub async fn info(
+    State(st): State<AppState>,
+    Path(ChannelIDPath { channel_id }): Path<ChannelIDPath>,
+) -> Response<Json<ChannelInfo>> {
+    let c = st.db().await?;
+    let ch = ChannelInfo::get_or_init(channel_id, &c).await?;
+    Ok(Json(ch))
 }
 
 #[instrument]
 pub async fn videos(
-    Path(VideosPathParams { channel_id }): Path<VideosPathParams>,
+    Path(ChannelIDPath { channel_id }): Path<ChannelIDPath>,
     Query(params): Query<VideosParams>,
 ) -> Response<Json<VideosResponse>> {
     let channel = ClientAsync::default()
@@ -43,11 +60,6 @@ pub async fn videos(
         continuation: Continuation(channel.continuation),
         videos_info,
     }))
-}
-
-#[derive(Deserialize, Debug, JsonSchema)]
-pub struct VideosPathParams {
-    channel_id: ChannelID,
 }
 
 #[derive(Deserialize, Debug, JsonSchema)]

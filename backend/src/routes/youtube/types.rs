@@ -1,12 +1,14 @@
+use crate::{cornucopia::queries::ytb, utils::fixed_str};
 use aide::OperationIo;
+use anyhow::Context;
 use axum::{
     async_trait,
     extract::{FromRequestParts, Path},
 };
+use cornucopia_async::GenericClient;
+use invidious::CommonThumbnail;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::utils::fixed_str;
 
 #[derive(Debug, Clone, Default)]
 pub struct QueryParam(String);
@@ -34,6 +36,11 @@ fixed_str!(
     "The youtube channel ID (must be 24 ASCII characters), e.g., UCjuNibFJ21MiSNpu8LZyV4w"
 );
 
+#[derive(Deserialize, Debug, JsonSchema)]
+pub struct ChannelIDPath {
+    pub channel_id: ChannelID,
+}
+
 fixed_str!(
     VideoID,
     11,
@@ -60,8 +67,60 @@ impl<'a> From<&'a Continuation> for QueryParam {
 pub struct ChannelInfo {
     name: String,
     id: ChannelID,
-    /// description in HTML form
+    /// the official channel description in HTML form
     description_html: String,
+    /// introduction to the channel
+    introduction: Option<String>,
+}
+
+impl ChannelInfo {
+    async fn update_db_cache(
+        &self,
+        conn: &impl GenericClient,
+    ) -> anyhow::Result<()> {
+        ytb::update_channel_cache()
+            .bind(conn, &self.name, &self.description_html, &self.id.as_ref())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn fetch(id: &ChannelID) -> anyhow::Result<Self> {
+        let resp: invidious::CommonChannel = todo!();
+        Ok(resp.into())
+    }
+
+    pub async fn get_or_init(
+        id: ChannelID,
+        conn: &impl GenericClient,
+    ) -> anyhow::Result<Self> {
+        let channel = id.as_ref();
+        let res = ytb::channel_info()
+            .bind(conn, &channel)
+            .opt()
+            .await
+            .context("could not get channel info")?;
+        match res {
+            Some(ytb::ChannelInfo {
+                channel: _,
+                channel_name: Some(name),
+                description: Some(description_html),
+                introduction,
+            }) => Ok(Self {
+                name,
+                id,
+                description_html,
+                introduction,
+            }),
+            r => {
+                if r.is_none() {
+                    ytb::insert_channel().bind(conn, &channel).await?;
+                }
+                let new = Self::fetch(&id).await?;
+                new.update_db_cache(conn).await?;
+                Ok(new)
+            }
+        }
+    }
 }
 
 impl From<invidious::CommonChannel> for ChannelInfo {
@@ -72,6 +131,59 @@ impl From<invidious::CommonChannel> for ChannelInfo {
                 panic!("invidious has an invalid channel id: {e}")
             }),
             description_html: value.description_html,
+            introduction: None,
+        }
+    }
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, JsonSchema)]
+pub enum VideoSource {
+    #[default]
+    /// Unknown source
+    Unknown,
+    /// the video comes from a channel
+    Channel {
+        /// the channel ID of the video
+        channel_id: ChannelID,
+    },
+    /// the video comes from recommandation
+    Recommandation,
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, JsonSchema)]
+pub enum SortOrder {
+    #[default]
+    /// (Default order) Display recommended videos first in updated order, followed by videos from channels in published order.
+    RecommandationChannels,
+    /// Display videos from channels first in published order, followed by recommended videos in updated order.
+    ChannelsRecommandation,
+    /// Sort videos by combining both sources: if it is from channels, use its published date; if it is from recommendations, use its updated date.
+    Combined,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+pub struct Thumbnail {
+    #[serde(default)]
+    pub quality: String,
+    pub url: String,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl From<CommonThumbnail> for Thumbnail {
+    fn from(
+        CommonThumbnail {
+            quality,
+            url,
+            width,
+            height,
+        }: CommonThumbnail,
+    ) -> Self {
+        Self {
+            quality,
+            url,
+            width,
+            height,
         }
     }
 }
@@ -84,6 +196,7 @@ pub struct VideoInfo {
     /// duration seconds
     length: u32,
     id: VideoID,
+    thumbnails: Vec<Thumbnail>,
     /// description in HTML form
     description_html: String,
 }
@@ -96,6 +209,7 @@ impl From<invidious::CommonVideo> for VideoInfo {
             length,
             id,
             description_html,
+            thumbnails,
             ..
         }: invidious::CommonVideo,
     ) -> Self {
@@ -107,6 +221,14 @@ impl From<invidious::CommonVideo> for VideoInfo {
                 panic!("invidious has an invalid video id: {e}")
             }),
             description_html,
+            thumbnails: thumbnails.into_iter().map(Thumbnail::from).collect(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+/// Video information with its source
+pub struct VideoWithSource {
+    video_info: VideoInfo,
+    source: VideoSource,
 }

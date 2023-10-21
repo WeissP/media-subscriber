@@ -19,35 +19,24 @@
             ./env_config/server.toml
           ];
           packages = with pkgs;
-            [
-              rust-bin.nightly."2023-07-04".default
-              openssl
-              openssl.dev
-              libiconv
-              pkg-config
-            ] ++ (if stdenv.isDarwin then
+            [ rust-bin.nightly."2023-07-04".default ]
+            ++ (if stdenv.isDarwin then
               with darwin.apple_sdk.frameworks; [
                 IOKit
                 Security
                 CoreServices
                 SystemConfiguration
               ]
-            else
-              [ ]);
-          env = [
-            {
-              name = "PKG_CONFIG_PATH";
-              prefix = "${pkgs.openssl.dev}/lib/pkgconfig";
-            }
-            # {
-            #   name = "OPENSSL_DIR";
-            #   value = "${pkgs.openssl.dev}/lib/pkgconfig";
-            # }
-            {
-              name = "OPENSSL_NO_VENDOR";
-              value = "1";
-            }
-          ];
+            else [
+              gcc
+              openssl
+              libiconv
+              pkg-config
+            ]);
+          env = [{
+            name = "PKG_CONFIG_PATH";
+            value = "${pkgs.openssl.dev}/lib/pkgconfig";
+          }];
         };
         extraImports = files:
           basic // {

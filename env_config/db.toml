@@ -1,28 +1,42 @@
-imports = ["services/postgres"]
+imports = ["postgres.nix"]
 
 [services.postgres]
 package = "pkgs.postgresql_16"
 setupPostgresOnStartup = true
+listenAddresses = "*"
 
 [[env]]
 name = "DBNAME"
-value = "ma"
+value = "ms"
 
 [[env]]
 name = "PGPORT"
 value = "7700"
 
 [[env]]
-name = "SQLX_OFFLINE"
-value = "true"
+name = "MS_DATABASE_URL"
+eval = 'postgres:///$DBNAME?port=$PGPORT\&host=$PGHOST'
 
 [[env]]
-name = "DATABASE_URL"
-eval = 'postgres:///$DBNAME?port=$PGPORT\&host=$PGHOST'
+name = "MS_DATABASE_URL_LOCALHOST"
+eval = 'postgres://${USER:-$(id -nu)}@localhost:$PGPORT/$DBNAME'
+
+[[commands]]
+package = "refinery-cli"
+name = "refinery"
 
 [[commands]]
 name = "setup-db"
-help = "setup postgresql and create databaes"
-command = 'sqlx database setup --database-url $DATABASE_URL'
+command = '''
+createdb  -h $PGDATA -p $PGPORT $DBNAME
+pushd $PRJ_ROOT/backend
+refinery migrate -e MS_DATABASE_URL_LOCALHOST
+          '''
 
-
+[[commands]]
+name = "reset-db"
+command = '''
+rm -rf $PGDATA
+setup-postgres
+postgres
+          '''

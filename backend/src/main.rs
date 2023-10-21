@@ -5,20 +5,24 @@
 
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use anyhow::Context;
-use axum::Router;
-use axum_sessions::{async_session::MemoryStore, SessionLayer};
+use axum::{
+    error_handling::HandleErrorLayer, http::StatusCode, BoxError, Extension,
+    Router,
+};
 use clap::Parser;
 use errors::RespError;
-use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc};
+use tower::ServiceBuilder;
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing::log::warn;
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-use crate::{config::Config, store::AppState};
+use crate::{config::Config, docs::docs_routes, store::AppState};
 
 mod config;
+mod cornucopia;
 mod db;
 mod docs;
 mod errors;
@@ -38,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     let sub = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .with_level(true);
-    match env::var("MA_LOG_DIR").ok() {
+    match env::var("MS_LOG_DIR").ok() {
         Some(dir) => {
             let file_appender =
                 tracing_appender::rolling::hourly(dir, "media_subscriber.log");
@@ -53,11 +57,28 @@ async fn main() -> anyhow::Result<()> {
 
     let addr = config.socket_addr();
     let state = AppState::new(&config).await?;
+    let session_store = MemoryStore::default();
+    let session_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|_: BoxError| async {
+            StatusCode::BAD_REQUEST
+        }))
+        .layer(
+            SessionManagerLayer::new(session_store)
+                .with_secure(true)
+                .with_max_age(time::Duration::DAY),
+        );
+
+    let mut api = OpenApi::default();
 
     // combine the front and backend into server
     let app = ApiRouter::new()
         .merge(services::front_public_route(config.front_public()))
-        .merge(services::backend(state));
+        .merge(services::backend())
+        .merge(docs_routes(state.clone()))
+        .finish_api(&mut api)
+        .layer(Extension(Arc::new(api)))
+        .with_state(state)
+        .layer(session_service);
 
     tracing::info!("listening on http://{}", addr);
 

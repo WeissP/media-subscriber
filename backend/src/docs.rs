@@ -9,9 +9,9 @@ use aide::{
     openapi::OpenApi,
     redoc::Redoc,
 };
-use axum::{response::IntoResponse, Extension};
+use axum::{response::IntoResponse, Extension, Router};
 
-pub fn docs_routes(state: AppState) -> ApiRouter {
+pub fn docs_routes(state: AppState) -> ApiRouter<AppState> {
     // We infer the return types for these routes
     // as an example.
     //
@@ -19,19 +19,18 @@ pub fn docs_routes(state: AppState) -> ApiRouter {
     // have the `text/html` content-type correctly set
     // with a 200 status.
     aide::gen::infer_responses(true);
-
     let router = ApiRouter::new()
         .api_route_with(
-            "/",
+            "/docs",
             get_with(
                 Redoc::new("/docs/private/api.json")
-                    .with_title("Aide Axum")
+                    .with_title("API Specification")
                     .axum_handler(),
                 |op| op.description("This documentation page."),
             ),
             |p| p.security_requirement("ApiKey"),
         )
-        .route("/private/api.json", get(serve_docs))
+        .route("/docs/private/api.json", get(serve_docs))
         .with_state(state);
 
     // Afterwards we disable response inference because

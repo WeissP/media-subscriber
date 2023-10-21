@@ -30,10 +30,16 @@ where
 impl From<JsonSchemaRejection> for RespError {
     fn from(rejection: JsonSchemaRejection) -> Self {
         match rejection {
-            JsonSchemaRejection::Json(j) => Self::new(&j.to_string()),
-            JsonSchemaRejection::Serde(_) => Self::new("invalid request"),
-            JsonSchemaRejection::Schema(s) => Self::new("invalid request")
-                .with_details(json!({ "schema_validation": s })),
+            JsonSchemaRejection::Json(j) => {
+                Self::bad_request("invalid json", json!(j.to_string()))
+            }
+            JsonSchemaRejection::Serde(e) => {
+                Self::bad_request("conversion error", json!(e.to_string()))
+            }
+            JsonSchemaRejection::Schema(s) => Self::bad_request(
+                "validation error",
+                json!({"schema_validation": s}),
+            ),
         }
     }
 }

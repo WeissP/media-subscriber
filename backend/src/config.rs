@@ -6,7 +6,7 @@ use std::net::SocketAddr;
 #[get = "pub"]
 pub struct Config {
     /// The connection URL for the Postgres database this application should use.
-    #[clap(long, env)]
+    #[clap(long, env = "MS_DATABASE_URL")]
     database_url: String,
 
     /// The name of the session cookie.

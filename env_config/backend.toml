@@ -11,11 +11,12 @@ packages = [
 
 [[commands]]
 name = "c"
-help = "cargo lcheck"
+help = "alias of cargo lcheck"
 command = "cargo lcheck"
 
 [serviceGroups.rustdoc]
 description = "show rust doc as a web server"
-[serviceGroups.rustdoc.services.serve]
+[serviceGroups.rustdoc.services.cratedocs]
 command = "cargo doc && http-server $PRJ_ROOT/target/doc/ -p 7071"
-
+[serviceGroups.rustdoc.services.stddocs]
+command = "http-server $(rustc --print sysroot)/share/doc/rust/html -p 7072"

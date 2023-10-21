@@ -1,0 +1,7 @@
+[sqlfluff]
+dialect = postgres
+exclude_rules = L032, L001, L002
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+

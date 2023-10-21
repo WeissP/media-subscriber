@@ -2,6 +2,7 @@ use super::types::{ChannelID, ChannelInfo, Continuation, VideoInfo};
 use crate::{
     errors::{RespError, Response},
     extractors::Json,
+    store::AppState,
 };
 use aide::{
     axum::{routing::get, ApiRouter, IntoApiResponse},
@@ -19,7 +20,7 @@ use strum::AsRefStr;
 use tracing::instrument;
 use validator::Validate;
 
-pub fn route() -> ApiRouter {
+pub fn route() -> ApiRouter<AppState> {
     ApiRouter::new().api_route("/channel", get(search_channel))
 }
 
@@ -33,7 +34,10 @@ pub async fn search_channel(
         .items
         .into_iter()
         .filter_map(|it| match it {
-            invidious::hidden::SearchItem::Channel(ch) => Some(ch.into()),
+            invidious::hidden::SearchItem::Channel(ch) => {
+                println!("{:?}", ch.thumbnails.first().unwrap());
+                Some(ch.into())
+            }
             _ => None,
         })
         .collect();

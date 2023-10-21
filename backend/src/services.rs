@@ -11,7 +11,6 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use axum_sessions::{async_session::SessionStore, SessionLayer};
 use std::{env, sync::Arc};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
@@ -19,7 +18,7 @@ use tower_http::{services::ServeDir, trace::TraceLayer};
 // FRONT END
 // *********
 // Front end to server svelte build bundle, css and index.html from public folder
-pub fn front_public_route(dir: &str) -> Router {
+pub fn front_public_route(dir: &str) -> Router<AppState> {
     async fn handle_error() -> (StatusCode, String) {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -37,32 +36,24 @@ pub fn front_public_route(dir: &str) -> Router {
 // BACK END
 // ********
 // Back end server built form various routes that are either public, require auth, or secure login
-pub fn backend(
-    // session_layer: SessionLayer<Store>,
-    shared_state: AppState,
-) -> Router {
-    let mut api = OpenApi::default();
+pub fn backend(// session_layer: SessionLayer<Store>,
+) -> ApiRouter<AppState> {
     // could add tower::ServiceBuilder here to group layers, especially if you add more layers.
     // see https://docs.rs/axum/latest/axum/middleware/index.html#ordering
-    ApiRouter::new()
-        .merge(back_public_route())
-        // .merge(back_auth_route())
-        // .merge(back_token_route(shared_state.clone()))
-        .nest_api_service("/docs", docs_routes(shared_state.clone()))
-        .finish_api(&mut api)
-        // .layer(session_layer)
-        .layer(Extension(Arc::new(api)))
+    ApiRouter::new().merge(back_public_route())
+    // .merge(back_auth_route())
+    // .merge(back_token_route(shared_state.clone()))
 }
 
 // *********
 // BACKEND NON-AUTH
 // *********
 //
-pub fn back_public_route() -> ApiRouter {
+pub fn back_public_route() -> ApiRouter<AppState> {
     ApiRouter::new()
-        .route("/auth/session", get(routes::session::data_handler)) // gets session data
-        .route("/auth/login", post(routes::login)) // sets username in session
-        .route("/auth/logout", get(routes::logout)) // deletes username in session
+        // .route("/auth/session", get(routes::session::data_handler)) // gets session data
+        // .route("/auth/login", post(routes::login)) // sets username in session
+        // .route("/auth/logout", get(routes::logout)) // deletes username in session
         .route("/test", get(routes::not_implemented_route))
         .nest("/youtube", youtube::route())
 }
