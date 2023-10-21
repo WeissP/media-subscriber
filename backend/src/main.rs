@@ -6,13 +6,15 @@
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use anyhow::Context;
 use axum::{
-    error_handling::HandleErrorLayer, http::StatusCode, BoxError, Extension,
-    Router,
+    error_handling::HandleErrorLayer,
+    http::{Method, StatusCode},
+    BoxError, Extension, Router,
 };
 use clap::Parser;
 use errors::RespError;
 use std::{env, net::SocketAddr, sync::Arc};
 use tower::ServiceBuilder;
+use tower_http::cors::{Any, CorsLayer};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing::log::warn;
 use tracing_subscriber::{
@@ -70,6 +72,12 @@ async fn main() -> anyhow::Result<()> {
 
     let mut api = OpenApi::default();
 
+    let cors = CorsLayer::new()
+        // allow `GET` and `POST` when accessing the resource
+        .allow_methods([Method::GET, Method::POST])
+        // allow requests from any origin
+        .allow_origin(Any);
+
     // combine the front and backend into server
     let app = ApiRouter::new()
         .merge(services::front_public_route(config.front_public()))
@@ -77,6 +85,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(docs_routes(state.clone()))
         .finish_api(&mut api)
         .layer(Extension(Arc::new(api)))
+        .layer(cors)
         .with_state(state)
         .layer(session_service);
 
