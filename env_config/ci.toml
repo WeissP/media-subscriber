@@ -1,3 +1,14 @@
 [[env]]
 name = "RUST_LOG"
 value = "debug"
+
+[[commands]]
+name = "wait-db"
+help = "Wait for the database to finish initializing"
+command = '''
+until psql -h $PGDATA -p "${PGPORT}" -d "postgres" -c '\q'; do
+    >&2 echo "Postgres is still unavailable - sleeping"
+    sleep 1
+done
+'''
+

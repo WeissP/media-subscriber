@@ -19,7 +19,7 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           nix develop .#ci --impure -c "postgres" &
-          sleep 20
+          nix develop .#ci --impure -c "wait-db"
           nix develop .#ci --impure -c "setup-db"
           nix develop .#ci --impure -c "cargo" "build"
           nix develop .#ci --impure -c "cargo" "test"
