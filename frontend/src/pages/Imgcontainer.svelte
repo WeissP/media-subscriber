@@ -1,10 +1,23 @@
 <script>
     export let img,length
+    const time = new Date(length*1000)
+    
+    function secondsToHms(d) {
+        d = Number(d);
+        var h = Math.floor(d / 3600);
+        var m = Math.floor(d % 3600 / 60);
+        var s = Math.floor(d % 3600 % 60);
+
+        var hDisplay = h > 0 ? h + ":" : "";
+        var mDisplay = m > 0 ? m + ":" : "";
+        var sDisplay = s > 0 ? s  : "";
+        return hDisplay + mDisplay + sDisplay; 
+    }
 </script>
 
 <div class="video-preview-img-container">
     <img src={img} alt="img">
-    <div class="bottom-right-time-container" >{length}</div>
+    <div class="bottom-right-time-container" >{secondsToHms(length)}</div>
 </div>
 
 <style>
@@ -19,6 +32,7 @@
         justify-content: center;
     }
     .bottom-right-time-container{
+        border-radius: 3px;
         position: absolute;
         background-color: rgb(0, 0, 0);
         color: aliceblue;
