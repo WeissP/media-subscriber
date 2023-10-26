@@ -1,5 +1,7 @@
 <script>
+    import { Card, CardBody, CardTitle, Ribbon, El, Icon } from 'yesvelte'
     export let img,length
+    let mark = 1
     const time = new Date(length*1000)
     
     function secondsToHms(d) {
@@ -16,8 +18,11 @@
 </script>
 
 <div class="video-preview-img-container">
-    <img src={img} alt="img">
-    <div class="bottom-right-time-container" >{secondsToHms(length)}</div>
+        <img src={img} alt="img">
+        {#if mark == 1}
+            
+        {/if}
+        <div class="bottom-right-time-container" >{secondsToHms(length)}</div>
 </div>
 
 <style>

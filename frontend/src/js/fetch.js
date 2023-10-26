@@ -14,7 +14,7 @@ export async function getApi(api_token) {
     return await res.json();
 } 
 
-export async function videosByTag(tagName, onSuccess){
+export async function infosByTag(tagName, onSuccess){
     fetch("http://127.0.0.1:7070/youtube/tag/" + tagName, {
       method: 'GET',
     })

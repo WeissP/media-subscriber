@@ -5,7 +5,10 @@
 	import { Button, Icon } from 'yesvelte'
 	import Videopreview from './pages/Videopreview.svelte';
     import Videospool from './pages/Videospool.svelte';
-	import { videosByTag } from './js/fetch';
+	import { infosByTag } from './js/fetch';
+	import { Badge } from "yesvelte";
+	import Avatarlist from './pages/Avatarlist.svelte';
+	import Tagsnavteil from './pages/Tagsnavteil.svelte';
 
 	let data =[];
 </script>
@@ -13,13 +16,43 @@
 	<link rel='stylesheet' href={tabler}/>
 </svelte:head>
 
+<div class="left-side-container">
+	<div class ="header-container"><h1>Media-subscrbiber</h1></div>
+	<Tagsnavteil on:tagEvent={e => data = e.detail}/>
+</div>
+<div class="right-side-container">
+	<Avatarlist data={data}/>
+	<Videospool pool={data}/>
+</div>
 
-<Button color="light" on:click={e => {videosByTag("test", res => data =res)}}> 
+<!-- <Button color="light" on:click={e => {infosByTag("test", res => data =res)}}> 
 	<Icon name="tags" size="2x"></Icon>
-</Button>
-<Videospool pool={data}/>
+</Button> -->
+<!-- <Avatarlist data ={data}/> -->
 
 
 <style>
-	
+	.left-side-container{
+		position:absolute;
+    	/* z-index:-1;  may used for background setting*/
+		display: flex;
+		flex-direction:  column ;
+		height:100%;
+		width: 250px;
+		border-right-style:solid;
+		border-right-width: 6px;
+		border-image: linear-gradient(to right, #b9b9b9, #ffffff) 1 100%;
+	}
+	.header-container{
+		margin:5px
+	}
+	.right-side-container{
+		position:absolute;
+		top:0;
+		left:253px;
+		right:0;
+		bottom:0;
+		display: flex;
+		flex-direction:  column ;
+	}
 </style>
